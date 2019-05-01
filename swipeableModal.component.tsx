@@ -27,7 +27,7 @@ interface State {
 const { height: screenHeight } = Dimensions.get("window");
 const TIMING_CONFIG = { duration: 300, easing: Easing.inOut(Easing.ease) };
 
-class SwipableModal extends PureComponent<Props, State> {
+class SwipeableModal extends PureComponent<Props, State> {
 	panResponder: PanResponderInstance;
 
 	constructor(props: Props) {
@@ -111,7 +111,7 @@ class SwipableModal extends PureComponent<Props, State> {
 	}
 }
 
-export default SwipableModal;
+export default SwipeableModal;
 
 const style = StyleSheet.create({
 	container: {

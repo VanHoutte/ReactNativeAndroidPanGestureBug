@@ -1,7 +1,7 @@
 import React, { PureComponent } from "react";
 import { StyleSheet, Text, View, Button, NativeSyntheticEvent, NativeScrollEvent, Animated } from "react-native";
 import { NavigationScreenProp, ScrollView } from "react-navigation";
-import SwipableModal from "./swipableModal.component";
+import SwipeableModal from "./swipeableModal.component";
 import { TouchableWithoutFeedback } from "react-native-gesture-handler";
 
 interface Props {
@@ -97,12 +97,12 @@ class DetailScreen extends PureComponent<Props> {
 
 	render() {
 		return (
-				<SwipableModal
+				<SwipeableModal
 					onClose={this.props.navigation.pop}
 					nearTop={this.state.closeToTop}
 					nearBottom={this.state.closeToBottom}>
 					{this.renderContent()}
-				</SwipableModal>
+				</SwipeableModal>
 		);
 	}
 }
