@@ -1,0 +1,30 @@
+{
+  "name": "SweetApp",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "start": "node node_modules/react-native/local-cli/cli.js start",
+    "test": "jest",
+    "ios": "react-native run-ios --simulator=\"iPhone X\"",
+    "android": "react-native run-android"    
+  },
+  "dependencies": {
+    "react": "16.6.3",
+    "react-native": "^0.59.5",
+    "react-native-gesture-handler": "^1.2.1",
+    "react-navigation": "^3.9.1"
+  },
+  "devDependencies": {
+    "@types/react": "^16.8.7",
+    "@types/react-native": "^0.57.38",
+    "babel-core": "7.0.0-bridge.0",
+    "babel-jest": "24.3.1",
+    "jest": "24.3.1",
+    "metro-react-native-babel-preset": "^0.53.1",
+    "react-test-renderer": "16.6.3",
+    "typescript": "^3.3.3333"
+  },
+  "jest": {
+    "preset": "react-native"
+  }
+}
