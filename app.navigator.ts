@@ -23,7 +23,8 @@ const RootNavigator = createStackNavigator(
 		transparentCard: true,
 		cardStyle: {
 			opacity: 1
-		}
+		},
+		initialRouteName: "Detail"
 	}
 );
 

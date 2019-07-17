@@ -1,121 +1,145 @@
-import React, { PureComponent, Component } from "react";
+import React, { PureComponent } from "react";
+import { Easing, Platform, Dimensions, StyleSheet, View } from "react-native";
+import Animated from "react-native-reanimated";
+import { spring } from "react-native-redash";
+
+const {
+	add,
+	cond,
+	eq,
+	event,
+	set,
+	Value,
+	debug,
+	and,
+	block,
+	abs,
+	startClock,
+	stopClock,
+	lessThan,
+	Clock,
+	divide,
+	diff,
+	multiply,
+	greaterThan,
+	sub
+} = Animated;
+
+// import { Metrics } from "src/assets/style";
+// import style from "./swipeableModal.style";
+import { NavigationScreenProp, AnimatedValue } from "react-navigation";
 import {
-	Animated,
-	PanResponder,
-	Easing,
-	PanResponderGestureState,
-	PanResponderInstance,
-	View,
-	Text,
-	StyleSheet,
-	Dimensions
-} from "react-native";
+	PanGestureHandler,
+	State,
+	ScrollView,
+	PanGestureHandlerStateChangeEvent,
+	PanGestureHandlerGestureEvent
+} from "react-native-gesture-handler";
 
 interface Props {
-	nearTop: boolean;
-	nearBottom: boolean;
-	onClose: () => void;
+	canScroll: {
+		nearTop: boolean,
+		nearBottom: boolean
+	};
+	onClose: (speed: number) => void;
 	children?: React.ReactNode;
+	nativeScrollRef?: React.RefObject<ScrollView>;
+	navigation?: NavigationScreenProp<any, any>;
 }
 
-interface State {
-	pan: Animated.ValueXY;
-	gesture?: PanResponderGestureState;
-	isDragging: boolean;
+const dismissDistance = Dimensions.get("screen").height / 3;
+const TIMING_CONFIG = { duration: 260, easing: Easing.linear };
+const minYSwipeDistance = 50;
+const minVelocityY = 2000;
+
+function interaction(gestureTranslation, gestureState) {
+	const dragging = new Value(0);
+	const start = new Value(0);
+	const position = new Value(0);
+	const snapPoint = new Value(0);
+
+	return cond(
+		eq(gestureState, State.ACTIVE),
+		[cond(dragging, 0, [set(dragging, 1), set(start, position)]), set(position, add(start, gestureTranslation))],
+		// create cond when the view is over 1/3 of the Y axis, dismiss
+		[set(dragging, 0), set(start, 0), set(position, 0), spring(gestureTranslation, gestureState, snapPoint)]
+	);
 }
 
-const { height: screenHeight } = Dimensions.get("window");
-const TIMING_CONFIG = { duration: 300, easing: Easing.inOut(Easing.ease) };
+class SwipeableModal extends React.Component<Props> {
+	panRef = React.createRef<PanGestureHandler>();
+	scrollRef = React.createRef<ScrollView>();
 
-class SwipeableModal extends PureComponent<Props, State> {
-	panResponder: PanResponderInstance;
+	gesture: { y: AnimatedValue };
+	trans: { y: AnimatedValue };
+
+	state: AnimatedValue;
+
+	_onGestureEvent: (...args: any[]) => void;
 
 	constructor(props: Props) {
 		super(props);
-		this.state = {
-			pan: new Animated.ValueXY({ x: 0, y: 0 }),
-			isDragging: false
-		};
 
-		this.panResponder = PanResponder.create({
-			// Ask to be the responder:
-			onStartShouldSetPanResponder: () => false,
-			onStartShouldSetPanResponderCapture: () => false,
-			onMoveShouldSetPanResponderCapture: () => false,
-			onPanResponderTerminationRequest: () => false,
+		this.gesture = { y: new Value(0) };
+		this.state = new Value(-1);
 
-			onMoveShouldSetPanResponder: (evt, gestureState) => {
-				if (this.state.isDragging) {
-					return true;
-				}
-
-				// moving finger from top to bottom
-				if (gestureState.vy > 0 && this.props.nearTop) {
-					this.setState({ isDragging: true });
-					return true;
-				}
-
-				// moving finger from bottom to top
-				if (gestureState.vy < 0 && this.props.nearBottom) {
-					this.setState({ isDragging: true });
-					return true;
-				}
-
-				return false;
-			},
-			onPanResponderMove: (evt, gestureState) => {
-				this.state.pan.setValue({ x: 0, y: gestureState.dy });
-			},
-			onPanResponderRelease: (evt, gestureState) => {
-				this.setState({ isDragging: false });
-				if (gestureState.vy <= -0.7 || gestureState.dy <= -300) {
-					// move from bottom to top
-					Animated.timing(this.state.pan, {
-						toValue: { x: 0, y: -screenHeight },
-						...TIMING_CONFIG
-					}).start(this.closeModal);
-				} else if (gestureState.vy >= 0.5 || gestureState.dy >= 300) {
-					// move from top to
-					Animated.timing(this.state.pan, {
-						toValue: { x: 0, y: screenHeight },
-						...TIMING_CONFIG
-					}).start(this.closeModal);
-				} else {
-					Animated.spring(this.state.pan, {
-						toValue: 0
-					}).start();
+		this._onGestureEvent = event([
+			{
+				nativeEvent: {
+					translationY: this.gesture.y,
+					state: this.state
 				}
 			}
-		});
+		]);
+
+		this.trans = {
+			y: interaction(this.gesture.y, this.state)
+		};
 	}
 
-	closeModal = () => {
-		this.props.onClose();
+	shouldComponentUpdate() {
+		return true;
+	}
+
+	closeModal = (speed: number) => {
+		this.props.onClose(speed);
 	};
 
-	handleGetStyle() {
-		return [
-			style.container,
-			{
-				transform: [...this.state.pan.getTranslateTransform()]
-			}
-		];
-	}
-
 	render() {
+		// if (Platform.OS === "android") {
+		// 	return this.props.children;
+		// }
+
 		return (
-			<Animated.View style={this.handleGetStyle()} {...this.panResponder.panHandlers}>
-				{this.props.children}
-			</Animated.View>
+			<View style={styles.container}>
+				<PanGestureHandler
+					ref={this.panRef}
+					onGestureEvent={this._onGestureEvent}
+					onHandlerStateChange={this._onGestureEvent}>
+					<Animated.View
+						style={[
+							styles.box,
+							{
+								transform: [{ translateY: this.trans.y }]
+							}
+						]}>
+						{/* {this.props.children} */}
+					</Animated.View>
+				</PanGestureHandler>
+			</View>
 		);
 	}
 }
 
-export default SwipeableModal;
-
-const style = StyleSheet.create({
+const styles = StyleSheet.create({
+	box: {
+		height: 200,
+		backgroundColor: "orange"
+	},
 	container: {
 		flex: 1,
 		backgroundColor: "white"
 	}
 });
+
+export default SwipeableModal;
