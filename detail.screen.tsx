@@ -217,12 +217,17 @@ class DetailScreen extends PureComponent<Props, State> {
 		// }
 	};
 
+	componentDidMount() {
+		console.log("MOUNTED");
+	}
+
+	close = () => {
+		this.props.navigation.pop();
+	};
+
 	render() {
 		return (
-			<SwipeableModal
-				onClose={this.props.navigation.pop}
-				nearTop={this.state.closeToTop}
-				nearBottom={this.state.closeToBottom}>
+			<SwipeableModal onClose={this.close} nearTop={this.state.closeToTop} nearBottom={this.state.closeToBottom}>
 				{this.renderContent()}
 			</SwipeableModal>
 

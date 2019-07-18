@@ -22,7 +22,10 @@ const {
 	diff,
 	multiply,
 	greaterThan,
-	sub
+	sub,
+	call,
+	or,
+	greaterOrEq
 } = Animated;
 
 // import { Metrics } from "src/assets/style";
@@ -48,23 +51,10 @@ interface Props {
 }
 
 const dismissDistance = Dimensions.get("screen").height / 3;
+const screenHeight = Dimensions.get("screen").height;
 const TIMING_CONFIG = { duration: 260, easing: Easing.linear };
 const minYSwipeDistance = 50;
 const minVelocityY = 2000;
-
-function interaction(gestureTranslation, gestureState) {
-	const dragging = new Value(0);
-	const start = new Value(0);
-	const position = new Value(0);
-	const snapPoint = new Value(0);
-
-	return cond(
-		eq(gestureState, State.ACTIVE),
-		[cond(dragging, 0, [set(dragging, 1), set(start, position)]), set(position, add(start, gestureTranslation))],
-		// create cond when the view is over 1/3 of the Y axis, dismiss
-		[set(dragging, 0), set(start, 0), set(position, 0), spring(gestureTranslation, gestureState, snapPoint)]
-	);
-}
 
 class SwipeableModal extends React.Component<Props> {
 	panRef = React.createRef<PanGestureHandler>();
@@ -93,7 +83,7 @@ class SwipeableModal extends React.Component<Props> {
 		]);
 
 		this.trans = {
-			y: interaction(this.gesture.y, this.state)
+			y: this.interaction(this.gesture.y, this.state)
 		};
 	}
 
@@ -101,8 +91,44 @@ class SwipeableModal extends React.Component<Props> {
 		return true;
 	}
 
-	closeModal = (speed: number) => {
-		this.props.onClose(speed);
+	interaction = (gestureTranslation, gestureState) => {
+		const dragging = new Value(0);
+		const start = new Value(0);
+		const position = new Value(0);
+		const snapPoint = new Value(0);
+		const outOfScreen = new Value(screenHeight);
+		const isClosing = new Value(0);
+
+		return block([
+			cond(
+				eq(gestureState, State.ACTIVE),
+				[
+					cond(dragging, 0, [set(dragging, 1), set(start, position)]),
+					set(position, add(start, gestureTranslation))
+				],
+				[
+					set(dragging, 0),
+					set(start, 0),
+					// set(position, 0),
+					debug("isClosing", isClosing),
+					cond(
+						greaterOrEq(position, outOfScreen),
+						cond(isClosing, 0, [set(isClosing, 1), call([], this.closeModal)])
+					),
+					cond(
+						greaterThan(gestureTranslation, dismissDistance),
+						[set(position, spring(gestureTranslation, gestureState, outOfScreen))],
+						[set(position, spring(gestureTranslation, gestureState, snapPoint))]
+					),
+					position
+				]
+			)
+		]);
+	};
+
+	closeModal = () => {
+		// console.log("CLOSE MODAL 2");
+		this.props.onClose(0);
 	};
 
 	render() {
