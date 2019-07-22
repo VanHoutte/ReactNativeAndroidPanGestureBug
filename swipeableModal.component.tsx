@@ -25,7 +25,8 @@ const {
 	sub,
 	call,
 	or,
-	greaterOrEq
+	greaterOrEq,
+	lessOrEq
 } = Animated;
 
 // import { Metrics } from "src/assets/style";
@@ -96,7 +97,8 @@ class SwipeableModal extends React.Component<Props> {
 		const start = new Value(0);
 		const position = new Value(0);
 		const snapPoint = new Value(0);
-		const outOfScreen = new Value(screenHeight);
+		const bottomOutOfScreen = new Value(screenHeight);
+		const topOutOfScreen = new Value(-screenHeight);
 		const isClosing = new Value(0);
 
 		return block([
@@ -109,16 +111,20 @@ class SwipeableModal extends React.Component<Props> {
 				[
 					set(dragging, 0),
 					set(start, 0),
-					// set(position, 0),
-					debug("isClosing", isClosing),
 					cond(
-						greaterOrEq(position, outOfScreen),
-						cond(isClosing, 0, [set(isClosing, 1), call([], this.closeModal)])
+						or(greaterOrEq(position, bottomOutOfScreen), lessOrEq(position, topOutOfScreen)),
+						cond(eq(isClosing, 0), [set(isClosing, 1), call([], this.closeModal)])
 					),
 					cond(
 						greaterThan(gestureTranslation, dismissDistance),
-						[set(position, spring(gestureTranslation, gestureState, outOfScreen))],
-						[set(position, spring(gestureTranslation, gestureState, snapPoint))]
+						[set(position, spring(gestureTranslation, gestureState, bottomOutOfScreen))],
+						[
+							cond(
+								lessThan(gestureTranslation, -dismissDistance),
+								[set(position, spring(gestureTranslation, gestureState, topOutOfScreen))],
+								[set(position, spring(gestureTranslation, gestureState, snapPoint))]
+							)
+						]
 					),
 					position
 				]
@@ -159,7 +165,7 @@ class SwipeableModal extends React.Component<Props> {
 
 const styles = StyleSheet.create({
 	box: {
-		height: 200,
+		flex: 1,
 		backgroundColor: "orange"
 	},
 	container: {

@@ -217,10 +217,6 @@ class DetailScreen extends PureComponent<Props, State> {
 		// }
 	};
 
-	componentDidMount() {
-		console.log("MOUNTED");
-	}
-
 	close = () => {
 		this.props.navigation.pop();
 	};
