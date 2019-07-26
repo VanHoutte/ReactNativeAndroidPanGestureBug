@@ -1,7 +1,7 @@
 import React, { PureComponent } from "react";
 import { Easing, Platform, Dimensions, StyleSheet, View } from "react-native";
 import Animated from "react-native-reanimated";
-import { spring } from "react-native-redash";
+import { spring, timing } from "react-native-redash";
 
 const {
 	add,
@@ -63,6 +63,7 @@ class SwipeableModal extends React.Component<Props> {
 
 	gesture: { y: AnimatedValue };
 	trans: { y: AnimatedValue };
+	velocity: { y: AnimatedValue };
 
 	state: AnimatedValue;
 
@@ -72,19 +73,21 @@ class SwipeableModal extends React.Component<Props> {
 		super(props);
 
 		this.gesture = { y: new Value(0) };
+		this.velocity = { y: new Value(0) };
 		this.state = new Value(-1);
 
 		this._onGestureEvent = event([
 			{
 				nativeEvent: {
 					translationY: this.gesture.y,
+					velocityY: this.velocity.y,
 					state: this.state
 				}
 			}
 		]);
 
 		this.trans = {
-			y: this.interaction(this.gesture.y, this.state)
+			y: this.interaction(this.gesture.y, this.state, this.velocity.y)
 		};
 	}
 
@@ -92,7 +95,7 @@ class SwipeableModal extends React.Component<Props> {
 		return true;
 	}
 
-	interaction = (gestureTranslation, gestureState) => {
+	interaction = (gestureTranslation, gestureState, velocity) => {
 		const dragging = new Value(0);
 		const start = new Value(0);
 		const position = new Value(0);
@@ -116,11 +119,11 @@ class SwipeableModal extends React.Component<Props> {
 						cond(eq(isClosing, 0), [set(isClosing, 1), call([], this.closeModal)])
 					),
 					cond(
-						greaterThan(gestureTranslation, dismissDistance),
+						or(greaterThan(gestureTranslation, dismissDistance), greaterThan(velocity, minVelocityY)),
 						[set(position, spring(gestureTranslation, gestureState, bottomOutOfScreen))],
 						[
 							cond(
-								lessThan(gestureTranslation, -dismissDistance),
+								or(lessThan(gestureTranslation, -dismissDistance), lessThan(velocity, -minVelocityY)),
 								[set(position, spring(gestureTranslation, gestureState, topOutOfScreen))],
 								[set(position, spring(gestureTranslation, gestureState, snapPoint))]
 							)
