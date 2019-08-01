@@ -4,15 +4,17 @@ import {
 	Text,
 	View,
 	Button,
+	Animated,
 	NativeSyntheticEvent,
 	NativeScrollEvent,
-	Animated,
-	Dimensions
+	Dimensions,
+	ScrollView
 } from "react-native";
+import NewAnimated from "react-native-reanimated";
 import { NavigationScreenProp } from "react-navigation";
 import SwipeableModal from "./swipeableModal.component";
-import { TouchableWithoutFeedback } from "react-native-gesture-handler";
-
+import { NativeViewGestureHandler } from "react-native-gesture-handler";
+const { set } = NewAnimated;
 // import { PanGestureHandler, ScrollView as GHScrollView, State } from "react-native-gesture-handler";
 
 interface Props {
@@ -29,6 +31,11 @@ const { width: screenWidth } = Dimensions.get("window");
 
 class DetailScreen extends PureComponent<Props, State> {
 	panGestureHandler = React.createRef();
+	nativeScrollRef = React.createRef<ScrollView>();
+	canScroll = {
+		nearTop: new NewAnimated.Value(1),
+		nearBottom: new NewAnimated.Value(1)
+	};
 
 	// state = {
 	// 	topClick: false
@@ -37,20 +44,20 @@ class DetailScreen extends PureComponent<Props, State> {
 	constructor(props: Props) {
 		super(props);
 
-		this._translateX = new Animated.Value(0);
-		this._translateY = new Animated.Value(0);
-		this._lastOffset = { x: 0, y: 0 };
-		this._onGestureEvent = Animated.event(
-			[
-				{
-					nativeEvent: {
-						translationX: this._translateX,
-						translationY: this._translateY
-					}
-				}
-			],
-			{ useNativeDriver: false }
-		);
+		// this._translateX = new Animated.Value(0);
+		// this._translateY = new Animated.Value(0);
+		// this._lastOffset = { x: 0, y: 0 };
+		// this._onGestureEvent = Animated.event(
+		// 	[
+		// 		{
+		// 			nativeEvent: {
+		// 				translationX: this._translateX,
+		// 				translationY: this._translateY
+		// 			}
+		// 		}
+		// 	],
+		// 	{ useNativeDriver: false }
+		// );
 	}
 
 	state = {
@@ -62,25 +69,25 @@ class DetailScreen extends PureComponent<Props, State> {
 	scrollY = new Animated.Value(0);
 	// scrollView?: ScrollView;
 
-	handleScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
-		console.log(e.nativeEvent.velocity.y);
+	// handleScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+	// 	console.log(e.nativeEvent.velocity.y);
 
-		const closeToTop = this.isCloseToTop(e);
-		if (closeToTop !== this.state.closeToTop) {
-			this.setState({ closeToTop });
-		}
+	// 	const closeToTop = this.isCloseToTop(e);
+	// 	if (closeToTop !== this.state.closeToTop) {
+	// 		this.setState({ closeToTop });
+	// 	}
 
-		if (closeToTop && e.nativeEvent.velocity.y < 0) {
-			this.setState({ disableScroll: true });
-		} else {
-			this.setState({ disableScroll: false });
-		}
+	// 	if (closeToTop && e.nativeEvent.velocity.y < 0) {
+	// 		this.setState({ disableScroll: true });
+	// 	} else {
+	// 		this.setState({ disableScroll: false });
+	// 	}
 
-		const closeToBottom = this.isCloseToBottom(e);
-		if (closeToBottom !== this.state.closeToBottom) {
-			this.setState({ closeToBottom });
-		}
-	};
+	// 	const closeToBottom = this.isCloseToBottom(e);
+	// 	if (closeToBottom !== this.state.closeToBottom) {
+	// 		this.setState({ closeToBottom });
+	// 	}
+	// };
 
 	isCloseToTop = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
 		const { contentOffset } = e.nativeEvent;
@@ -96,81 +103,51 @@ class DetailScreen extends PureComponent<Props, State> {
 	renderContent = () => {
 		return (
 			<View>
-				{this.state.closeToTop ? (
-					<View
-						style={{
-							backgroundColor: "blue",
-							position: "absolute",
-							top: 0,
-							left: 0,
-							right: 0,
-							height: 300,
-							width: screenWidth,
-							zIndex: 301
-						}}>
-						<TouchableWithoutFeedback onPressOut={() => console.log("onPressOut")}>
-							<Text>TOP</Text>
-						</TouchableWithoutFeedback>
-					</View>
-				) : null}
-				<Animated.ScrollView
-					contentContainerStyle={{ flexGrow: 1 }}
-					scrollEventThrottle={16}
-					bounces={false}
-					scrollEnabled={!this.state.disableScroll}
-					overScrollMode={"never"}
-					onScroll={Animated.event(
-						[
-							{
-								nativeEvent: {
-									contentOffset: {
-										y: this.scrollY
+				<NativeViewGestureHandler ref={this.nativeScrollRef}>
+					<Animated.ScrollView
+						contentContainerStyle={{ flexGrow: 1 }}
+						scrollEventThrottle={16}
+						bounces={false}
+						scrollEnabled={!this.state.disableScroll}
+						overScrollMode={"never"}
+						onScroll={Animated.event(
+							[
+								{
+									nativeEvent: {
+										contentOffset: {
+											y: this.scrollY
+										}
 									}
 								}
+							],
+							{
+								useNativeDriver: true,
+								listener: this.handleScroll
 							}
-						],
-						{
-							useNativeDriver: true,
-							listener: this.handleScroll
-						}
-					)}
-					ref={(ref: any) => (this.scrollView = ref && ref.getNode())}>
-					<View style={{ flex: 1 }}>
-						<View style={{ ...styles.container, height: 200, backgroundColor: "red" }}>
-							<Text>red</Text>
+						)}
+						ref={(ref: any) => (this.scrollView = ref && ref.getNode())}>
+						<View style={{ flex: 1 }}>
+							<View style={{ ...styles.container, height: 200, backgroundColor: "red" }}>
+								<Text>red</Text>
+							</View>
+							<View style={{ ...styles.container, height: 200, backgroundColor: "yellow" }}>
+								<Text>yellow</Text>
+							</View>
+							<View style={{ ...styles.container, height: 200, backgroundColor: "green" }}>
+								<Text>green</Text>
+							</View>
+							<View style={{ ...styles.container, height: 200, backgroundColor: "blue" }}>
+								<Text>blue</Text>
+							</View>
+							<View style={{ ...styles.container, height: 200, backgroundColor: "red" }}>
+								<Text>red</Text>
+							</View>
+							<View style={{ ...styles.container, height: 200, backgroundColor: "yellow" }}>
+								<Text>yellow</Text>
+							</View>
 						</View>
-						<View style={{ ...styles.container, height: 200, backgroundColor: "yellow" }}>
-							<Text>yellow</Text>
-						</View>
-						<View style={{ ...styles.container, height: 200, backgroundColor: "green" }}>
-							<Text>green</Text>
-						</View>
-						<View style={{ ...styles.container, height: 200, backgroundColor: "blue" }}>
-							<Text>blue</Text>
-						</View>
-						<View style={{ ...styles.container, height: 200, backgroundColor: "red" }}>
-							<Text>red</Text>
-						</View>
-						<View style={{ ...styles.container, height: 200, backgroundColor: "yellow" }}>
-							<Text>yellow</Text>
-						</View>
-					</View>
-				</Animated.ScrollView>
-				{this.state.closeToBottom ? (
-					<View
-						style={{
-							backgroundColor: "green",
-							position: "absolute",
-							bottom: 0,
-							left: 0,
-							right: 0,
-							height: 300,
-							width: screenWidth,
-							zIndex: 301
-						}}>
-						<Text>BOTTOM</Text>
-					</View>
-				) : null}
+					</Animated.ScrollView>
+				</NativeViewGestureHandler>
 			</View>
 		);
 	};
@@ -186,19 +163,21 @@ class DetailScreen extends PureComponent<Props, State> {
 
 	_onHandlerStateChange = (event) => {
 		// if (event.nativeEvent.oldState === State.ACTIVE) {
-		this._lastOffset.x += event.nativeEvent.translationX;
-		this._lastOffset.y += event.nativeEvent.translationY;
-		this._translateX.setOffset(this._lastOffset.x);
-		this._translateX.setValue(0);
-		this._translateY.setOffset(this._lastOffset.y);
-		this._translateY.setValue(0);
+		// this._lastOffset.x += event.nativeEvent.translationX;
+		// this._lastOffset.y += event.nativeEvent.translationY;
+		// this._translateX.setOffset(this._lastOffset.x);
+		// this._translateX.setValue(0);
+		// this._translateY.setOffset(this._lastOffset.y);
+		// this._translateY.setValue(0);
 		// }
 	};
 
-	// handleScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
-	// 	this.setState({ closeToTop: this.isCloseToTop(e) });
-	// 	this.setState({ closeToBottom: this.isCloseToBottom(e) });
-	// };
+	handleScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+		// set(this.canScroll.nearTop, this.isCloseToTop(e) ? 1 : 0);
+		set(this.canScroll.nearTop, 0);
+		console.log("set");
+		set(this.canScroll.nearBottom, this.isCloseToBottom(e) ? 1 : 0);
+	};
 
 	// isCloseToTop = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
 	// 	const { contentOffset } = e.nativeEvent;
@@ -213,7 +192,7 @@ class DetailScreen extends PureComponent<Props, State> {
 
 	getStyle = () => {
 		// if (this.state.topClick) {
-		transform: [{ translateY: this._translateY }];
+		// transform: [{ translateY: this._translateY }];
 		// }
 	};
 
@@ -223,7 +202,7 @@ class DetailScreen extends PureComponent<Props, State> {
 
 	render() {
 		return (
-			<SwipeableModal onClose={this.close} nearTop={this.state.closeToTop} nearBottom={this.state.closeToBottom}>
+			<SwipeableModal nativeScrollRef={this.nativeScrollRef} onClose={this.close} canScroll={this.canScroll}>
 				{this.renderContent()}
 			</SwipeableModal>
 

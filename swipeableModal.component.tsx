@@ -1,7 +1,7 @@
 import React, { PureComponent } from "react";
 import { Easing, Platform, Dimensions, StyleSheet, View } from "react-native";
 import Animated from "react-native-reanimated";
-import { spring, timing } from "react-native-redash";
+import { spring } from "react-native-redash";
 
 const {
 	add,
@@ -42,8 +42,8 @@ import {
 
 interface Props {
 	canScroll: {
-		nearTop: boolean,
-		nearBottom: boolean
+		nearTop: AnimatedValue,
+		nearBottom: AnimatedValue
 	};
 	onClose: (speed: number) => void;
 	children?: React.ReactNode;
@@ -52,7 +52,7 @@ interface Props {
 }
 
 const dismissDistance = Dimensions.get("screen").height / 3;
-const screenHeight = Dimensions.get("screen").height;
+const screenHeight = Dimensions.get("screen").height + 50;
 const TIMING_CONFIG = { duration: 260, easing: Easing.linear };
 const minYSwipeDistance = 50;
 const minVelocityY = 2000;
@@ -87,7 +87,13 @@ class SwipeableModal extends React.Component<Props> {
 		]);
 
 		this.trans = {
-			y: this.interaction(this.gesture.y, this.state, this.velocity.y)
+			y: this.interaction(
+				this.gesture.y,
+				this.state,
+				this.velocity.y,
+				props.canScroll.nearTop,
+				props.canScroll.nearBottom
+			)
 		};
 	}
 
@@ -95,7 +101,7 @@ class SwipeableModal extends React.Component<Props> {
 		return true;
 	}
 
-	interaction = (gestureTranslation, gestureState, velocity) => {
+	interaction = (gestureTranslation, gestureState, velocity, nearTop, nearBottom) => {
 		const dragging = new Value(0);
 		const start = new Value(0);
 		const position = new Value(0);
@@ -105,6 +111,10 @@ class SwipeableModal extends React.Component<Props> {
 		const isClosing = new Value(0);
 
 		return block([
+			debug("nearTop", nearTop),
+			debug("nearBottom", nearBottom),
+			// cond(
+			// or(eq(this.props.canScroll.nearTop, 1), eq(this.props.canScroll.nearBottom, 1)),
 			cond(
 				eq(gestureState, State.ACTIVE),
 				[
@@ -132,6 +142,7 @@ class SwipeableModal extends React.Component<Props> {
 					position
 				]
 			)
+			// )
 		]);
 	};
 
@@ -150,7 +161,9 @@ class SwipeableModal extends React.Component<Props> {
 				<PanGestureHandler
 					ref={this.panRef}
 					onGestureEvent={this._onGestureEvent}
-					onHandlerStateChange={this._onGestureEvent}>
+					onHandlerStateChange={this._onGestureEvent}
+					maxPointers={1}
+					simultaneousHandlers={this.props.nativeScrollRef ? this.props.nativeScrollRef : undefined}>
 					<Animated.View
 						style={[
 							styles.box,
@@ -158,7 +171,7 @@ class SwipeableModal extends React.Component<Props> {
 								transform: [{ translateY: this.trans.y }]
 							}
 						]}>
-						{/* {this.props.children} */}
+						{this.props.children}
 					</Animated.View>
 				</PanGestureHandler>
 			</View>
